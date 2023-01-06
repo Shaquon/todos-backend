@@ -1,5 +1,6 @@
 const uuid = require('uuid');
 const HttpError = require('../models/http-errors');
+const { validationResult } = require('express-validator');
 
 let DUMMY_TODOS = [
     {
@@ -55,6 +56,13 @@ const getTodosByUserId = (req, res, next) => {
 }
 
 const createTodo = (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty) {
+        console.log(errors);
+        throw new HttpError('invalid inputs passed. ', 422);
+    }
+
     const { title, description, dueDate, creatorId } = req.body;
     const createdTodo = {
         id: uuid.v4(),
@@ -70,6 +78,13 @@ const createTodo = (req, res, next) => {
 }
 
 const updateTodo = (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty) {
+        console.log(errors);
+        throw new HttpError('invalid inputs passed. ', 422);
+    }
+    
     const { title, description, dueDate } = req.body;
 
     const todoId = req.params.todoId;
