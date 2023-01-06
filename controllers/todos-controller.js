@@ -1,7 +1,7 @@
 const uuid = require('uuid');
 const HttpError = require('../models/http-errors');
 
-const DUMMY_TODOS = [
+let DUMMY_TODOS = [
     {
         id: 't1',
         title: 'do the laundry',
@@ -25,7 +25,7 @@ const DUMMY_TODOS = [
     }
 ];
 
-const getTodoByTodoId = (req, res, next) => {
+const getTodoById = (req, res, next) => {
     console.log('GET Request in Todos route - get todo by tid');
     const todoId = req.params.todoId;
     const todo = DUMMY_TODOS.find((t) => {
@@ -33,32 +33,29 @@ const getTodoByTodoId = (req, res, next) => {
     });
 
     if (!todo) {
-        return next(new HttpError('Could not find a todo or provided todo id', 404));
+        return next(new HttpError('Could not find a todo for provided todo id', 404));
     }
 
-    res.json(todo);
+    res.json({ todo });
 };
 
 const getTodosByUserId = (req, res, next) => {
     console.log('GET Request in Todos route - get todo by uid');
     const userId = req.params.userId;
 
-    const todo = DUMMY_TODOS.filter((u) => {
+    const todos = DUMMY_TODOS.filter((u) => {
         return u.creatorId === userId;
     });
 
-    if (!todo) {
-        if (!todo) {
-            return next(new HttpError('Could not find a todo or provided user id', 404));
-        }
+    if (!todos || todos.length === 0) {
+        return next(new HttpError('Could not find a todos for provided user id', 404));
     }
 
-    res.json(todo);
+    res.json({ todos });
 }
 
 const createTodo = (req, res, next) => {
     const { title, description, dueDate, creatorId } = req.body;
-
     const createdTodo = {
         id: uuid.v4(),
         title,
@@ -72,6 +69,32 @@ const createTodo = (req, res, next) => {
     res.status(201).json({ todo: createdTodo });
 }
 
-exports.getTodoByTodoId = getTodoByTodoId;
+const updateTodo = (req, res, next) => {
+    const { title, description, dueDate } = req.body;
+
+    const todoId = req.params.todoId;
+
+    const updatedTodo = { ...DUMMY_TODOS.find((t) => t.id === todoId) };
+    const todoIndex = DUMMY_TODOS.findIndex(t => t.id === todoId);
+
+    updatedTodo.title = title;
+    updatedTodo.description = description;
+    updatedTodo.dueDate = dueDate;
+
+    DUMMY_TODOS[todoIndex] = updatedTodo;
+    res.status(201).json({ todo: updatedTodo });
+}
+const deleteTodo = (req, res, next) => {
+    const todoId = req.params.id;
+
+    DUMMY_TODOS = DUMMY_TODOS.filter((t) => {
+        return t.id === todoId;
+    });
+    res.status(200).json({ message: 'Deleted todo' })
+}
+
+exports.getTodoById = getTodoById;
 exports.getTodosByUserId = getTodosByUserId;
 exports.createTodo = createTodo;
+exports.updateTodo = updateTodo;
+exports.deleteTodo = deleteTodo;
