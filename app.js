@@ -4,6 +4,8 @@ const todosRoutes = require('./routes/todos-routes');
 
 const app = express();
 
+// MiddleWare
+app.use(bodyParser.json());
 app.use('/api/todos', todosRoutes);
 
 app.use((error, req, res, next) => {
