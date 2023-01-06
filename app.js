@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const todosRoutes = require('./routes/todos-routes');
 const HttpError = require('./models/http-errors');
 const usersRoutes = require('./routes/users-routes');
+const mongoose = require('mongoose');
+
 const app = express();
 
 // MiddleWare
@@ -24,4 +26,12 @@ app.use((error, req, res, next) => {
     res.json({ message: error.message || 'An unknown error occured!' })
 });
 
-app.listen(5050);
+mongoose
+    .set('strictQuery', true)
+    .connect('mongodb+srv://shaquon01:Newcolor18!@cluster0.5z0p2cj.mongodb.net/?retryWrites=true&w=majority')
+    .then(() => {
+        app.listen(5050);
+    })
+    .catch((err) => {
+        console.log(err)
+    })
