@@ -5,9 +5,9 @@ const Schema = mongoose.Schema;
 const todoSchema = new Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
-    dueDate: { type: String, required: true },
-    creatorId: { type: mongoose.Types.ObjectId, required: true, ref: 'User' },
-    isDeleted: { type: Boolean, required: true, defaults: false }
+    complete: { type: Boolean, required: true },
+    isDeleted: { type: Boolean, required: true, defaults: false },
+    creatorId: { type: mongoose.Types.ObjectId, required: true, ref: 'User' }
 });
 
 todoSchema.pre("find", function () {

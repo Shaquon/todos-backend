@@ -51,12 +51,12 @@ const createTodo = async (req, res, next) => {
         throw new HttpError('invalid inputs passed. ', 422);
     };
 
-    let { title, description, dueDate, creatorId } = req.body;
+    let { title, description, complete, creatorId } = req.body;
 
     const createdTodo = new Todo({
         title,
         description,
-        dueDate,
+        complete,
         creatorId,
         isDeleted: false
     });
@@ -99,7 +99,7 @@ const updateTodo = async (req, res, next) => {
         throw new HttpError('invalid inputs passed. ', 422);
     }
 
-    const { title, description, dueDate } = req.body;
+    const { title, description, complete } = req.body;
     const todoId = req.params.todoId;
 
     let todo;
@@ -113,7 +113,7 @@ const updateTodo = async (req, res, next) => {
 
     todo.title = title;
     todo.description = description;
-    todo.dueDate = dueDate;
+    todo.comeplete = complete;
 
     try {
         await todo.save();

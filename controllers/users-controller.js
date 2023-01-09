@@ -25,19 +25,16 @@ const getUsers = (req, res, next) => {
 const signup = async (req, res, next) => {
     const errors = validationResult(req);
 
-    if (!errors.isEmpty) {
-        console.log(errors);
+    if (!errors.isEmpty()) {
         return next(new HttpError('invalid inputs passed. ', 422));
     }
 
     const { name, email, password } = req.body;
-
     let existingUser;
 
     try {
         existingUser = await user.findOne({ email: email });
     } catch (err) {
-        console.log(err);
         return next(new HttpError('Signing up failed. Please try again.', 500));
     }
 
@@ -52,11 +49,9 @@ const signup = async (req, res, next) => {
         password,
         todos: []
     });
-
     try {
         await createdUser.save();
     } catch (err) {
-        console.log(err);
         return next(new HttpError('Signing up failed. Please try again.', 500));
     }
 
