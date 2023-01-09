@@ -1,112 +1,155 @@
-const uuid = require('uuid');
+const mongoose = require('mongoose');
 const HttpError = require('../models/http-errors');
 const { validationResult } = require('express-validator');
+const Todo = require('../models/todo');
+const User = require('../models/user');
 
-let DUMMY_TODOS = [
-    {
-        id: 't1',
-        title: 'do the laundry',
-        description: 'I need to do the laundry today',
-        dueDate: '01/20/2023',
-        creatorId: 'u1'
-    },
-    {
-        id: 't2',
-        title: 'do my HW',
-        description: 'I need to do my hw today',
-        dueDate: '01/20/2023',
-        creatorId: 'u2'
-    },
-    {
-        id: 't3',
-        title: 'do the dishes',
-        description: 'I need to do the dishes today',
-        dueDate: '01/20/2023',
-        creatorId: 'u2'
-    }
-];
-
-const getTodoById = (req, res, next) => {
-    console.log('GET Request in Todos route - get todo by tid');
+const getTodoById = async (req, res, next) => {
     const todoId = req.params.todoId;
-    const todo = DUMMY_TODOS.find((t) => {
-        return t.id === todoId;
-    });
+    let todo;
+
+    try {
+        todo = await Todo.findById(todoId)
+    } catch (err) {
+        console.log(err);
+        return next(new HttpError("Something went wrong. Could't find todo.", 500));
+    }
 
     if (!todo) {
         return next(new HttpError('Could not find a todo for provided todo id', 404));
     }
 
-    res.json({ todo });
+    res.json({ todo: todo.toObject({ getters: true }) });
 };
 
-const getTodosByUserId = (req, res, next) => {
-    console.log('GET Request in Todos route - get todo by uid');
+const getTodosByUserId = async (req, res, next) => {
     const userId = req.params.userId;
 
-    const todos = DUMMY_TODOS.filter((u) => {
-        return u.creatorId === userId;
-    });
+    let todos;
+
+    try {
+        todos = await Todo.find({ creatorId: userId })
+        console.log('todos', todos);
+    } catch (err) {
+        console.log('err: ', err);
+        return next(new HttpError('Fetching todos failed. Please try again.', 500));
+    }
+
 
     if (!todos || todos.length === 0) {
         return next(new HttpError('Could not find a todos for provided user id', 404));
     }
 
-    res.json({ todos });
-}
+    res.json({ todos: todos.map(todo => todo.toObject({ getter: true })) });
+};
 
-const createTodo = (req, res, next) => {
+const createTodo = async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty) {
         console.log(errors);
         throw new HttpError('invalid inputs passed. ', 422);
-    }
+    };
 
-    const { title, description, dueDate, creatorId } = req.body;
-    const createdTodo = {
-        id: uuid.v4(),
+    let { title, description, dueDate, creatorId } = req.body;
+
+    const createdTodo = new Todo({
         title,
         description,
         dueDate,
-        creatorId
+        creatorId,
+        isDeleted: false
+    });
+
+    let user;
+
+    try {
+        user = await User.findById(creatorId);
+    } catch (err) {
+        return next('Creating todo failed. Please try again.', 500)
     }
 
-    DUMMY_TODOS.push(createdTodo);
+    if (!user) {
+        return next(new HttpError('Could not find user for provided id.', 404));
+    }
+
+    console.log('User: ', user);
+
+    try {
+        const sess = await mongoose.startSession();
+        sess.startTransaction();
+        await createdTodo.save({ session: sess });
+        user.todos.push(createdTodo);
+        await user.save({ session: sess });
+        await sess.commitTransaction();
+    } catch (err) {
+        console.log("error: ", err);
+        const error = new HttpError('Creating todo failed. Please try again.', 500);
+        return next(error);
+    }
 
     res.status(201).json({ todo: createdTodo });
 }
 
-const updateTodo = (req, res, next) => {
+const updateTodo = async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty) {
         console.log(errors);
         throw new HttpError('invalid inputs passed. ', 422);
     }
-    
-    const { title, description, dueDate } = req.body;
 
+    const { title, description, dueDate } = req.body;
     const todoId = req.params.todoId;
 
-    const updatedTodo = { ...DUMMY_TODOS.find((t) => t.id === todoId) };
-    const todoIndex = DUMMY_TODOS.findIndex(t => t.id === todoId);
+    let todo;
 
-    updatedTodo.title = title;
-    updatedTodo.description = description;
-    updatedTodo.dueDate = dueDate;
+    try {
+        todo = await Todo.findById(todoId);
+    } catch (err) {
+        console.log(err);
+        return next(new HttpError('Something went wrong. Could not update todo.', 500))
+    }
 
-    DUMMY_TODOS[todoIndex] = updatedTodo;
-    res.status(201).json({ todo: updatedTodo });
-}
-const deleteTodo = (req, res, next) => {
-    const todoId = req.params.id;
+    todo.title = title;
+    todo.description = description;
+    todo.dueDate = dueDate;
 
-    DUMMY_TODOS = DUMMY_TODOS.filter((t) => {
-        return t.id === todoId;
-    });
-    res.status(200).json({ message: 'Deleted todo' })
-}
+    try {
+        await todo.save();
+    } catch (err) {
+        console.log(err);
+        return next(new HttpError('Something went wrong. Could not update todo.', 500))
+    };
+
+    res.status(200).json({ todo: todo.toObject({ getters: true }) });
+};
+
+const deleteTodo = async (req, res, next) => {
+    const todoId = req.params.todoId;
+
+    let todo;
+    try {
+        todo = await Todo.findById(todoId).populate('creatorId');
+    } catch (err) {
+        console.log(err);
+        return next(new HttpError('Something went wrong. Could not delete todo.'), 500)
+    };
+
+    if (!todo) {
+        return next(new HttpError('Could not find todo with this id'), 404);
+    }
+
+    try {
+        todo.isDeleted = true;
+        await todo.save();
+    } catch (err) {
+        console.log(err);
+        return next(new HttpError('Something went wrong. Could not delete todo.', 500));
+    };
+
+    res.status(200).json({ message: 'Deleted todo' });
+};
 
 exports.getTodoById = getTodoById;
 exports.getTodosByUserId = getTodosByUserId;
