@@ -35,11 +35,6 @@ const getTodosByUserId = async (req, res, next) => {
         return next(new HttpError('Fetching todos failed. Please try again.', 500));
     }
 
-
-    if (!todos || todos.length === 0) {
-        return next(new HttpError('Could not find a todos for provided user id', 404));
-    }
-
     res.json({ todos: todos.map(todo => todo.toObject({ getter: true })) });
 };
 

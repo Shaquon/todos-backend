@@ -36,7 +36,7 @@ app.use((error, req, res, next) => {
 
 mongoose
     .set('strictQuery', true)
-    .connect('mongodb+srv://shaquon01:Newcolor18!@cluster0.5z0p2cj.mongodb.net/todos?retryWrites=true&w=majority')
+    .connect('mongodb+srv://shaquon01:Newcolor18!@cluster0.5z0p2cj.mongodb.net/mern?retryWrites=true&w=majority')
     .then(() => {
         app.listen(5050);
     })
