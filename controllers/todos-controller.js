@@ -29,7 +29,6 @@ const getTodosByUserId = async (req, res, next) => {
 
     try {
         todos = await Todo.find({ creatorId: userId })
-        console.log('todos', todos);
     } catch (err) {
         console.log('err: ', err);
         return next(new HttpError('Fetching todos failed. Please try again.', 500));
@@ -68,8 +67,6 @@ const createTodo = async (req, res, next) => {
         return next(new HttpError('Could not find user for provided id.', 404));
     }
 
-    console.log('User: ', user);
-
     try {
         const sess = await mongoose.startSession();
         sess.startTransaction();
@@ -94,7 +91,7 @@ const updateTodo = async (req, res, next) => {
         throw new HttpError('invalid inputs passed. ', 422);
     }
 
-    const { title, description, complete } = req.body;
+    const { title, description, complete, creatorId } = req.body;
     const todoId = req.params.todoId;
 
     let todo;
@@ -108,7 +105,7 @@ const updateTodo = async (req, res, next) => {
 
     todo.title = title;
     todo.description = description;
-    todo.comeplete = complete;
+    todo.complete = complete;
 
     try {
         await todo.save();

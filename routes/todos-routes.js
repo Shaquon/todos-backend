@@ -9,9 +9,9 @@ router.get('/:todoId', todosController.getTodoById);
 
 router.get('/user/:userId', todosController.getTodosByUserId);
 
-router.post('/', [check('title').not().isEmpty(), check('descriiption').isLength({ min: 5 })], todosController.createTodo);
+router.post('/', [check('title').not().isEmpty(), check('description').isLength({ min: 5 })], todosController.createTodo);
 
-router.patch('/:todoId', [check('title').not().isEmpty(), check('descriiption').isLength({ min: 5 })], todosController.updateTodo);
+router.patch('/:todoId', [check('title').not().isEmpty(), check('description').isLength({ min: 5 })], todosController.updateTodo);
 
 router.delete('/:todoId', todosController.deleteTodo);
 
