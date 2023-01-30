@@ -1,9 +1,11 @@
 const express = require('express');
 const { check } = require('express-validator');
-
+const checkAuth = require('../middleware/check-auth');
 const todosController = require('../controllers/todos-controller');
 
 const router = express.Router();
+
+router.use(checkAuth);
 
 router.get('/:todoId', todosController.getTodoById);
 
