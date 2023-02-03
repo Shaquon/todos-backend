@@ -2,6 +2,7 @@ const HttpError = require('../models/http-errors');
 const { validationResult } = require('express-validator');
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 
 const getUser = async (req, res, next) => {
@@ -11,6 +12,7 @@ const getUser = async (req, res, next) => {
     try {
         user = await User.findById(userId);
     } catch (err) {
+        console.log('Error:', err);
         return next(new HttpError("Something went wrong. Couldn't find user.", 500))
     };
 
@@ -31,9 +33,11 @@ const signup = async (req, res, next) => {
     const { name, email, password } = req.body;
 
     let existingUser;
+
     try {
         existingUser = await User.findOne({ email: email });
     } catch (err) {
+        console.log('Error:', err);
         return next(new HttpError('Signing up failed. Please try again.', 500));
     }
 
@@ -43,9 +47,11 @@ const signup = async (req, res, next) => {
     }
 
     let hashedPassword;
+
     try {
         hashedPassword = await bcrypt.hash(password, 12);
     } catch (err) {
+        console.log('Error:', err);
         const error = new HttpError('Could not create user, please try again.', 500);
         return next(error);
     }
@@ -55,25 +61,29 @@ const signup = async (req, res, next) => {
         email,
         password: hashedPassword,
         todos: []
-    });
+    })
 
     try {
         await createdUser.save();
+        console.log('createdUser saved!');
     } catch (err) {
+        console.log(err);
         return next(new HttpError('Signing up failed. Please try again.', 500));
     }
 
     let token;
     try {
         token = jwt.sign(
-            { userId: createdUser.id, email: email },
+            { userId: createdUser.id, email: createdUser.email },
             'supersecret_dont_share',
             { expiresIn: '1h' }
         );
+        console.log('token created!');
     } catch (err) {
+        console.log('Error:', err);
         return next(new HttpError('Signing up failed. Please try again.', 500));
     }
-
+    
     res.status(201).json({ userId: createdUser.id, email: createdUser.email, token: token });
 };
 
@@ -85,10 +95,12 @@ const login = async (req, res, next) => {
     try {
         existingUser = await User.findOne({ email: email });
     } catch (err) {
+        console.log('Error:', err);
         return next(new HttpError('Logging in failed. Please try again.', 500));
     }
 
     if (!existingUser) {
+        console.log('no existing user');
         return next(new HttpError('Invalid credentials, could not log you in.'));
     }
 
@@ -97,23 +109,27 @@ const login = async (req, res, next) => {
     try {
         isValidPassword = await bcrypt.compare(password, existingUser.password);
     } catch (err) {
+        console.log('Error:', err);
         const error = new HttpError('Could not log you in, please check your credentials and try again.');
         return next(error);
     }
 
     if (!isValidPassword) {
+        console.log('is not a valid password');
         const error = new HttpError('Could not log you in, please check your credentials and try again.');
         return next(error);
     }
 
     let token;
+
     try {
         token = jwt.sign(
-            { userId: createdUser.id, email: email },
+            { userId: existingUser.id, email: email },
             'supersecret_dont_share',
             { expiresIn: '1h' }
         );
     } catch (err) {
+        console.log('Error:', err);
         return next(new HttpError('Logging in failed. Please try again.', 500));
     }
 
